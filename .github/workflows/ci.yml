@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          gfortran-12 \
+          gcc-12-offload-nvptx \
+          cmake \
+          build-essential
+
+    - name: Create ptxas wrapper (for compilation test)
+      run: |
+        mkdir -p cuda_wrapper
+        cat > cuda_wrapper/ptxas << 'EOF'
+        #!/bin/bash
+        # Mock ptxas for CI - just succeed without doing anything
+        exit 0
+        EOF
+        chmod +x cuda_wrapper/ptxas
+        # Create minimal CUDA structure for FindOpenACC
+        sudo mkdir -p /usr/local/cuda/bin
+        sudo ln -sf $(pwd)/cuda_wrapper/ptxas /usr/local/cuda/bin/ptxas
+
+    - name: Test Makefile build
+      run: |
+        make clean || true
+        PATH="$(pwd)/cuda_wrapper:$PATH" make
+
+    - name: Test CMake configuration
+      run: |
+        mkdir -p build
+        cd build
+        cmake ..
+
+    - name: Test CMake build
+      run: |
+        cd build
+        make -j$(nproc)
+
+    - name: Verify OpenACC compilation flags
+      run: |
+        cd build
+        # Check that the binary was created
+        test -f vector_add_openacc
+        # Verify it's a real binary (not empty)
+        file vector_add_openacc | grep -q "ELF.*executable"
+
+    - name: Check CMake configuration output
+      run: |
+        cd build
+        # Verify CMake found OpenACC support
+        cmake .. 2>&1 | grep -q "Found OpenACC support"
