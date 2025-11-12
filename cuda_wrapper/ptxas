@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Wrapper for ptxas to handle sm_30 -> sm_53 conversion
+# This works around the issue where gfortran defaults to sm_30
+GPU_ARCH=${GPU_ARCH:-sm_53}
+
+echo "ptxas wrapper called with: $@" >> /tmp/ptxas.log
+
+args=()
+i=1
+while [ $i -le $# ]; do
+    arg=${!i}
+    case "$arg" in
+        --gpu-name)
+            # Next argument should be the architecture
+            ((i++))
+            next_arg=${!i}
+            if [ "$next_arg" = "sm_30" ]; then
+                args+=("--gpu-name" "${GPU_ARCH}")
+                echo "Converted --gpu-name sm_30 -> ${GPU_ARCH}" >> /tmp/ptxas.log
+            else
+                args+=("--gpu-name" "$next_arg")
+            fi
+            ;;
+        *)
+            args+=("$arg")
+            ;;
+    esac
+    ((i++))
+done
+
+echo "Final args: ${args[@]}" >> /tmp/ptxas.log
+exec /usr/local/cuda/bin/ptxas "${args[@]}"
