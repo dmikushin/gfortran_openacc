@@ -5,9 +5,15 @@ FC = gfortran-12
 # You can override this by setting GPU_ARCH=sm_XX on command line
 GPU_ARCH ?= sm_53
 
+# Save PTX intermediate code (set SAVE_PTX=1 to enable)
+SAVE_PTX ?= 0
+
 # OpenACC flags with configurable GPU architecture
 # Use wrapper to avoid hardcoded sm_30 in nvptx-as
 ACCFLAGS_GPU = -fopenacc -foffload=nvptx-none -foffload-options=nvptx-none=-misa=$(GPU_ARCH)
+ifeq ($(SAVE_PTX),1)
+    ACCFLAGS_GPU += -save-temps=obj -foffload-options=nvptx-none=-save-temps
+endif
 CFLAGS = -g -O3 -Wall
 
 vector_add_openacc: vector_add_openacc.f90

@@ -53,11 +53,17 @@ add_openacc_to_target(my_openacc_app)
 
 - `OpenACC_GPU_ARCH`: Target GPU architecture (default: `sm_53`)
 - `OpenACC_CUDA_HOME`: CUDA installation path (default: `/usr/local/cuda`)
+- `OpenACC_SAVE_PTX`: Save PTX intermediate code during compilation (default: `OFF`)
 
 Example:
 ```bash
-cmake -DOpenACC_GPU_ARCH=sm_70 ..
+cmake -DOpenACC_GPU_ARCH=sm_70 -DOpenACC_SAVE_PTX=ON ..
 ```
+
+When `OpenACC_SAVE_PTX` is enabled, the compiler will save intermediate PTX files in the build directory alongside object files. This is useful for:
+- Debugging GPU code generation
+- Analyzing PTX assembly
+- Understanding compiler optimizations
 
 ### What the Macro Does
 
@@ -90,6 +96,14 @@ For quick testing without CMake:
 make
 make test
 ```
+
+To save PTX intermediate code with Makefile:
+
+```bash
+make SAVE_PTX=1
+```
+
+This will generate `.ptx` and other intermediate files in the current directory.
 
 ### CMake Build
 

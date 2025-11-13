@@ -20,6 +20,9 @@ if(NOT DEFINED OpenACC_GPU_ARCH)
     set(OpenACC_GPU_ARCH "sm_53" CACHE STRING "GPU architecture for OpenACC (e.g., sm_53, sm_70, sm_75)")
 endif()
 
+# Option to save PTX intermediate code
+option(OpenACC_SAVE_PTX "Save PTX intermediate code during OpenACC compilation" OFF)
+
 # Find CUDA installation
 if(NOT DEFINED OpenACC_CUDA_HOME)
     if(DEFINED ENV{CUDA_HOME})
@@ -117,6 +120,18 @@ exec \"${OpenACC_CUDA_HOME}/bin/ptxas\" \"\${args[@]}\"
         "-foffload-options=nvptx-none=-misa=${OpenACC_GPU_ARCH}"
     )
 
+    # Add options to save PTX intermediate code if enabled
+    if(OpenACC_SAVE_PTX)
+        target_compile_options(${target_name} PRIVATE
+            "-save-temps=obj"
+            "-foffload-options=nvptx-none=-save-temps"
+        )
+        target_link_options(${target_name} PRIVATE
+            "-save-temps=obj"
+            "-foffload-options=nvptx-none=-save-temps"
+        )
+    endif()
+
     # Add link options
     target_link_options(${target_name} PRIVATE
         "-fopenacc"
@@ -142,4 +157,5 @@ if(OpenACC_FOUND)
     message(STATUS "Found OpenACC support")
     message(STATUS "  GPU Architecture: ${OpenACC_GPU_ARCH}")
     message(STATUS "  CUDA Home: ${OpenACC_CUDA_HOME}")
+    message(STATUS "  Save PTX: ${OpenACC_SAVE_PTX}")
 endif()
